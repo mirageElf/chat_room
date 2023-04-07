@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>首页</title>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="element/css/index.css">
+    <!--<script type="text/javascript" src="element/jQuery 3.4.1.js"></script>-->
+
+<!--    <link rel="stylesheet" href="https://unpkg.com/element-ui@2.12.0/lib/theme-chalk/index.css">-->
+    <script src="https://unpkg.com/vue@2.6.10/dist/vue.js"></script>
+    <script src="https://unpkg.com/element-ui@2.12.0/lib/index.js"></script>
+
+</head>
+<body>
+    <div id="app">
+        <el-card class="box-card" style="width: 30%">
+            <div slot="header" class="clearfix">
+                <el-input placeholder="图片缩放比例(1-100)" style="width: 200px;" type="number" suffix-icon="el-icon-picture-outline-round" v-model="params.ratio"></el-input>
+                &nbsp;&nbsp;图片缩放比例(1-100)
+            </div>
+            <div class="text item">
+                <el-upload
+                        class="avatar-uploader"
+                        action="/uploadImg"
+                        :data="params"
+                        :show-file-list="false"
+                        :on-success="handleAvatarSuccess"
+                        :before-upload="beforeAvatarUpload">
+                    <img v-if="imageUrl" :src="imageUrl" class="avatar">
+                    <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+                </el-upload>
+            </div>
+        </el-card>
+    </div>
+</body>
+
+<!-- vue -->
+<!--<script type="text/javascript" src="element/vue.js"></script>-->
+<!-- 引入组件库 -->
+<!--<script type="text/javascript" src="element/index.js"></script>-->
+<script src="https://unpkg.com/vue@2.6.10/dist/vue.js"></script>
+<script src="https://unpkg.com/element-ui@2.12.0/lib/index.js"></script>
+
+<script>
+    let vm = new Vue({
+        el: '#app',
+        data() {
+            return {
+                imageUrl: '',
+                params: {
+                    ratio: 100,
+                },
+            };
+        },
+        methods: {
+            // 上传图片成功方法
+            handleAvatarSuccess(res, file) {
+                // 页面上显示图片
+                this.imageUrl = URL.createObjectURL(file.raw);
+                // 请求下载
+                location.href = '/downloadTxt?id=' + res.id;
+            },
+            // 上传之前执行方法
+            beforeAvatarUpload(file) {
+                const isJPG = file.type === 'image/jpeg';
+                // const isLt2M = file.size / 1024 / 1024 < 2;
+
+                if (!isJPG) {
+                    this.$message.error('上传图片只能是 JPG 格式!');
+                }
+                /*if (!isLt2M) {
+                    this.$message.error('上传图片大小不能超过 2MB!');
+                }*/
+                if (this.params.ratio == '' || this.params.ratio <= 0 || this.params.ratio > 100) {
+                    this.$message.error('请正常输入图片缩放比例,不要搞事');
+                    return false;
+                }
+                return isJPG/* && isLt2M*/;
+            },
+        }
+    });
+</script>
+
+<style>
+    .avatar-uploader .el-upload {
+        border: 1px dashed #d9d9d9;
+        border-radius: 6px;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+    .avatar-uploader .el-upload:hover {
+        border-color: #409EFF;
+    }
+    .avatar-uploader-icon {
+        font-size: 28px;
+        color: #8c939d;
+        width: 178px;
+        height: 178px;
+        line-height: 178px;
+        text-align: center;
+    }
+    .avatar {
+        width: 178px;
+        height: 178px;
+        display: block;
+    }
+</style>
+
+</html>

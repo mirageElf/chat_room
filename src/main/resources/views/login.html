@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <meta charset="UTF-8">
+        <title>login</title>
+        <script type="text/javascript" src="element/js/jQuery 3.4.1.js"></script>
+        <!-- 引入样式 -->
+        <link rel="stylesheet" href="element/css/index.css">
+        <link rel="stylesheet" href="element/css/login.css">
+        <script src="element/js/vue.js"></script>
+        <script src="element/js/index.js"></script>
+    </head>
+
+    <body class="bodyBmg">
+        <div id="mainDiv" class="mainDiv">
+            <el-form ref="form" status-icon :rules="rules" :model="form" label-width="80px" :label-position="labelPosition">
+                <el-card class="box-card loginCard" shadow="always">
+                    <div class="card-content">
+                        <el-form-item label="用户名" prop="username">
+                            <el-input v-model="form.username" placeholder="请输入用户名" prefix-icon="el-icon-user-solid" autocomplete="off"></el-input>
+                        </el-form-item>
+                        <el-form-item label="密码" prop="password">
+                            <el-input show-password v-model="form.password" placeholder="请输入密码" prefix-icon="el-icon-unlock" autocomplete="off"></el-input>
+                        </el-form-item>
+                        <el-form-item class="loginButton">
+                            <el-button id="loginBtn" type="primary" @click="login('form')">登&nbsp;录</el-button>
+                        </el-form-item>
+                    </div>
+                </el-card>
+            </el-form>
+        </div>
+    </body>
+
+    <script>
+        let vue = new Vue({
+            el: '#mainDiv',
+            data() {
+                // 自定义的用户名验证
+                let validateName = (rule, value, callback) => {
+                    if (value === '') {
+                        callback(new Error('请输入用户名'));
+                    } else {
+                        callback();
+                    }
+                };
+                // 自定义的密码验证
+                let validatePass = (rule, value, callback) => {
+                    if (value === '') {
+                        callback(new Error('请输入密码'));
+                    } else {
+                        callback();
+                    }
+                };
+                return {
+                    // label对齐方式
+                    labelPosition: 'top',
+                    // 表单值
+                    form: {
+                        username: '',
+                        password: ''
+                    },
+                    // 表单验证规则
+                    rules: {
+                        username: [
+                            // 两种验证方式，第一种组件提供的验证(必填项label前会加上红色*)，第二种为自定义验证规则
+                            // {required:true, message:'请输入用户名', trigger:'blur'},
+                            {validator: validateName, trigger: 'blur'}
+                        ],
+                        password: [
+                            // {required:true, message:'请输入密码', trigger:'blur'},
+                            {validator: validatePass, trigger: 'blur'}
+                        ]
+                    }
+                }
+            },
+            created: function () {
+
+            },
+            methods: {
+                login(form) {
+                    // 表单验证
+                    this.$refs[form].validate((valid) => {
+                        // 按钮点击之后失去焦点
+                        $("#loginBtn").blur();
+                        // 验证结果
+                        if (valid) {
+                            $.ajax({
+                                type: 'post',
+                                url: '/login',
+                                data: {
+                                    username: this.form.username,
+                                    password: this.form.password
+                                },
+                                xhrFields: {
+                                    withCredentials: true // 这里设置了withCredentials
+                                },
+                                success: function (data) {
+                                    if (data.code == "0") {
+                                        vue.$message({
+                                            message: data.msg,
+                                            type: 'success',
+                                            center: true,
+                                            duration: 1000, // 显示时间
+                                            onClose: function () {
+                                                window.localStorage.setItem("nickName", data.nickName);
+                                                // 关闭时回调函数
+                                                window.location.href = "chatRoom.html";
+                                            }
+                                        });
+                                    } else {
+                                        vue.$message({
+                                            message: data.msg,
+                                            type: 'error',
+                                            center: true,
+                                            duration: 1000, // 显示时间
+                                        });
+                                    }
+                                },
+                            });
+                        } else {
+                            console.log('error submit!!');
+                            return false;
+                        }
+                    });
+                },
+            }
+        });
+    </script>
+</html>

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.soul.coco.dao.SysUserMapper">
+
+    <!-- 可根据自己的需求使用 -->
+    <resultMap type="com.soul.coco.model.SysUser" id="sysUserMap">
+        <result property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="password" column="password"/>
+        <result property="nickName" column="nick_name"/>
+        <result property="phone" column="phone"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!--要查询的字段-->
+    <sql id="sel_SysUserColumns_List">
+  	    id ,        
+        username ,
+        password ,
+        nick_name ,
+        phone ,
+        create_time ,
+        update_time
+  </sql>
+
+    <!--要添加的字段-->
+    <sql id="ins_SysUserColumns_List">
+       #{id}, #{username}, #{password}, #{nickName}, #{phone}, #{createTime}, #{updateTime}
+    </sql>
+
+    <!--要修改的字段-->
+    <sql id="upd_SysUserColumns_List">
+        <set>
+            <if test="t.username != null">username = #{t.username},</if>
+            <if test="t.password != null">password = #{t.password},</if>
+            <if test="t.nickName != null">nick_name = #{t.nickName},</if>
+            <if test="t.phone != null">phone = #{t.phone},</if>
+            <if test="t.createTime != null">create_time = #{t.createTime},</if>
+            <if test="t.updateTime != null">update_time = #{t.updateTime}</if>
+        </set>
+        where id = #{t.id}
+    </sql>
+
+    <!--定义删除的条件-->
+    <sql id="del_SysUserParams_List">
+        <where>
+            <if test="t.id != null">and id = #{t.id}</if>
+            <if test="t.username != null">and username = #{t.username}</if>
+            <if test="t.password != null">and password = #{t.password}</if>
+            <if test="t.nickName != null">and nick_name = #{t.nickName}</if>
+            <if test="t.phone != null">and phone = #{t.phone}</if>
+            <if test="t.createTime != null">and create_time = #{t.createTime}</if>
+            <if test="t.updateTime != null">and update_time = #{t.updateTime}</if>
+        </where>
+    </sql>
+
+    <!--定义查询的条件-->
+    <sql id="sel_SysUserParams_List">
+        <where>
+            <if test="t.id != null">and id = #{t.id}</if>
+            <if test="t.username != null">and username = #{t.username}</if>
+            <if test="t.password != null">and password = #{t.password}</if>
+            <if test="t.nickName != null">and nick_name = #{t.nickName}</if>
+            <if test="t.phone != null">and phone = #{t.phone}</if>
+            <if test="t.createTime != null">and create_time = #{t.createTime}</if>
+            <if test="t.updateTime != null">and update_time = #{t.updateTime}</if>
+        </where>
+        order by id desc
+    </sql>
+
+
+    <!--根据主键id查询单个对象-->
+    <select id="queryObjectById" resultMap="sysUserMap">
+        select
+        <include refid="sel_SysUserColumns_List"/>
+        from sys_user where id = #{value}
+    </select>
+
+    <!--根据条件（无条件）查询多个对象-->
+    <select id="queryManyByParams" resultMap="sysUserMap">
+        select
+        <include refid="sel_SysUserColumns_List"/>
+        from sys_user
+        <include refid="sel_SysUserParams_List"/>
+    </select>
+
+    <!--根据条件（无条件）分页查询-->
+    <select id="queryListByParams" resultMap="sysUserMap">
+        select
+        <include refid="sel_SysUserColumns_List"/>
+        from sys_user
+        <include refid="sel_SysUserParams_List"/>
+        limit #{currentRecord},#{limit}
+    </select>
+
+    <!--根据条件（无条件）查询数据条数-->
+    <select id="queryTotalByParams" resultType="java.lang.Integer">
+        select count(*) from sys_user
+        <include refid="sel_SysUserParams_List"/>
+    </select>
+
+    <!--添加-->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        insert into sys_user values (<include refid="ins_SysUserColumns_List"/>)
+    </insert>
+
+    <!--修改-->
+    <update id="update">
+        update sys_user
+        <include refid="upd_SysUserColumns_List"/>
+    </update>
+
+    <!--根据条件删除-->
+    <delete id="delete">
+        delete from sys_user
+        <include refid="del_SysUserParams_List"/>
+    </delete>
+
+    <!--批量删除-->
+    <delete id="deleteBatch">
+        delete from sys_user where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

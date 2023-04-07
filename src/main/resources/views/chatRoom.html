@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>聊天室</title>
+        <script type="text/javascript" src="element/js/jQuery 3.4.1.js"></script>
+        <!-- 引入样式 -->
+        <link rel="stylesheet" href="element/css/index.css">
+        <script src="element/js/vue.js"></script>
+        <script src="element/js/index.js"></script>
+        <!-- 引入自定义js -->
+        <script src="element/js/config.js"></script>
+    </head>
+
+    <body>
+        <div id="mainDiv">
+            <el-card class="box-card">
+                <div slot="header" class="clearfix">
+                    <span v-text="nickName" style="color: #409EFF"></span>
+                    <el-tag>当前房间：<span v-text="currentRoomName"></span></el-tag>
+
+                    <el-button-group style="float: right; margin-top: -9px;">
+                        <el-tooltip class="item" effect="light" content="创建房间" placement="bottom-start">
+                            <el-button type="primary" @click="roomInfoDom = true, dialogTitle = '创建房间', roomInfo.roomName = '', roomInfo.roomPwd = ''" icon="el-icon-circle-plus-outline"></el-button>
+                        </el-tooltip>
+
+                        <el-tooltip class="item" effect="light" content="加入房间" placement="bottom">
+                            <el-button type="primary" @click="roomInfoDom = true, dialogTitle = '加入房间', roomInfo.roomName = '', roomInfo.roomPwd = ''" icon="el-icon-search"></el-button>
+                        </el-tooltip>
+
+                        <el-tooltip class="item" effect="light" content="退出房间" placement="bottom-end">
+                            <el-button type="primary" @click="quitRoom()" icon="el-icon-switch-button"></el-button>
+                        </el-tooltip>
+                    </el-button-group>
+                </div>
+
+                <div class="text item">
+                    <el-container style="width: 100%; height: 50em">
+                        <el-main>
+                            <!-- 超出部分滚动显示，使用css样式隐藏滚动条，实现无滚动条滚动效果(好看是一辈子的事) -->
+                            <el-card id="msgDiv" class="box-card inContainer" shadow="never" style="height: 99%; overflow: scroll;">
+                                <div v-for="msgInfo in msgList" class="text item">
+                                    <div class="text item" style="text-align: right;" v-if="msgInfo.type == 1">
+                                        <span class="rightBubble">{{msgInfo.msg}}</span> <span style="color: #409EFF">{{msgInfo.name}}</span>
+                                    </div>
+                                    <div class="text item" v-else-if="msgInfo.type == 2">
+                                        <span style="color: rgb(213,90,234)">{{msgInfo.name}}</span> <span class="leftBubble">{{msgInfo.msg}}</span>
+                                    </div>
+                                    <div class="text item" v-else style="font-size: 12px; text-align: center; padding: 2px 0;">
+                                        <span style="color: red">{{msgInfo.name}}:</span> {{msgInfo.msg}}
+                                    </div>
+                                </div>
+                            </el-card>
+                        </el-main>
+
+                        <el-footer style="height: 15%">
+                            <el-input
+                                    type="textarea"
+                                    :rows="4"
+                                    placeholder="请输入内容"
+                                    v-model="message" id="message" style="width: 92%;" class="resizeNone">
+                            </el-input>
+                            <el-button type="primary" @click="sendMsg()" style="margin-left: 1em; margin-bottom: 2em;">发 送</el-button>
+                        </el-footer>
+                    </el-container>
+                </div>
+            </el-card>
+
+            <!-- 输入房间信息弹窗 -->
+            <el-dialog :visible.sync="roomInfoDom">
+                <el-form ref="roomInfo" :model="roomInfo" status-icon :rules="rules" label-width="80px" :label-position="labelPosition">
+                    <el-form-item label="房间号" prop="roomName">
+                        <el-input v-model="roomInfo.roomName" placeholder="请输入房间号" autocomplete="off"></el-input>
+                    </el-form-item>
+                    <el-form-item label="密码">
+                        <el-input v-model="roomInfo.roomPwd" placeholder="请输入密码,不填默认无密码" autocomplete="off"></el-input>
+                    </el-form-item>
+                </el-form>
+
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="roomInfoDom = false">取 消</el-button>
+                    <el-button type="primary" @click="roomConfirm('roomInfo')">确 定</el-button>
+                </div>
+
+                <!-- 自定义挑剔 slot=title 声明 -->
+                <template slot="title">
+                    <span v-text="dialogTitle" style="color: #409EFF"></span>
+                </template>
+            </el-dialog>
+        </div>
+    </body>
+
+    <script>
+        let vue = new Vue({
+            el: '#mainDiv',
+            data() {
+                // 自定义的用户名验证
+                let validateName = (rule, value, callback) => {
+                    if (value === '') {
+                        callback(new Error('请输入房间号'));
+                    } else {
+                        callback();
+                    }
+                };
+                return {
+                    // label对齐方式
+                    labelPosition: 'top',
+                    config: coco.config,    // 自定义js
+                    socket: null, // socket对象
+                    nickName: null, // 登录用户昵称，登录成功本地保存
+                    currentRoomName: "大厅",   // 当前房间号(默认大厅)
+                    roomInfo: {
+                        roomName: '',
+                        roomPwd: ''
+                    },
+                    dialogTitle: '',    // 自定义对话框title
+                    roomInfoDom: false,    // 对话框对象显示，默认不显示
+                    // 表单验证规则
+                    rules: {
+                        roomName: [
+                            // 两种验证方式，第一种组件提供的验证(必填项label前会加上红色*)，第二种为自定义验证规则
+                            // {required:true, message:'请输入用户名', trigger:'blur'},
+                            {validator: validateName, trigger: 'blur'}
+                        ]
+                    },
+                    message: '',    // 需要发送的消息
+                    msgList: [],    // 消息列表
+                }
+            },
+            created: function () {
+                if (typeof (WebSocket) == "undefined") {
+                    this.$message.error('您的浏览器不支持WebSocket!');
+                } else {
+                    this.nickName = window.localStorage.getItem("nickName");
+                    this.initialHall("0");
+                }
+            },
+            methods: {
+                // 初始化方法
+                initialHall(roomName) {
+                    let soul = this;
+                    // 实现化WebSocket，指定要连接的服务器地址与端口 建立连接
+                    soul.socket = new WebSocket(soul.config.ws_url + roomName);
+                    soul.initEventHandle();
+                },
+                // 创建房间事件
+                createRoom(roomInfo) {
+                    let coco = this;
+                    coco.$refs[roomInfo].validate((valid) => {
+                        if (valid) {
+                            $.ajax({
+                                type: 'post',
+                                url: '/chatRoom/createRoom',
+                                data: JSON.stringify({
+                                    roomName: coco.roomInfo.roomName,
+                                    roomPwd: coco.roomInfo.roomPwd
+                                }),
+                                contentType: 'application/json',
+                                xhrFields: {
+                                    withCredentials: true // 这里设置了withCredentials
+                                },
+                                success: function (data) {
+                                    if (data.code == "0") {
+                                        // 创建成功主动断开当前连接，重新连接新的
+                                        coco.socket.close();
+                                        coco.initialHall(coco.roomInfo.roomName);
+                                        coco.currentRoomName = coco.roomInfo.roomName;
+                                        // 关闭弹窗
+                                        coco.roomInfoDom = false;
+                                    } else {
+                                        coco.$message({
+                                            type: 'error',
+                                            center: true,
+                                            message: data.msg,
+                                            duration: 1000, // 显示时间
+                                        });
+                                    }
+                                },
+                            });
+                        }
+                    });
+                },
+                // 加入房间事件
+                joinRoom(roomInfo) {
+                    let coco = this;
+                    coco.$refs[roomInfo].validate((valid) => {
+                        if (valid) {
+                            $.ajax({
+                                type: 'post',
+                                url: '/chatRoom/joinRoom',
+                                data: JSON.stringify({
+                                    roomName: coco.roomInfo.roomName,
+                                    roomPwd: coco.roomInfo.roomPwd
+                                }),
+                                contentType: 'application/json',
+                                xhrFields: {
+                                    withCredentials: true // 这里设置了withCredentials
+                                },
+                                success: function (data) {
+                                    if (data.code == "0") {
+                                        // 房间存在且密码正确，则断开当前连接，连接新房间
+                                        coco.socket.close();
+                                        coco.initialHall(coco.roomInfo.roomName);
+                                        coco.currentRoomName = coco.roomInfo.roomName;
+                                        // 关闭弹窗
+                                        coco.roomInfoDom = false;
+                                    } else {
+                                        coco.$message({
+                                            type: 'error',
+                                            center: true,
+                                            message: data.msg,
+                                            duration: 1000, // 显示时间
+                                        });
+                                    }
+                                },
+                            });
+                        }
+                    });
+                },
+                // 退出房间事件
+                quitRoom() {
+                    let coco = this;
+                    if (coco.currentRoomName == "大厅") {
+                        coco.$message({
+                            type: 'warning',
+                            center: true,
+                            message: '当前已在大厅',
+                            duration: 1000, // 显示时间
+                        });
+                    } else {
+                        // 退出当前房间，连接大厅
+                        coco.socket.close();
+                        coco.initialHall("0");
+                        coco.currentRoomName = "大厅";
+                    }
+                },
+                // 初始化ws事件
+                initEventHandle() {
+                    // 主动断开连接
+                    // vm.socket.close();
+                    let soul = this;
+                    // 打开事件
+                    soul.socket.onopen = function () {
+                        soul.$message({
+                            type: 'success',
+                            message: '加入成功',
+                            center: true,
+                            duration: 1000, // 显示时间
+                        });
+                    };
+                    // 获得消息事件
+                    soul.socket.onmessage = function (msg) {
+                        // 判断消息数是否大于10条，超过十条则删除第一条数据
+                        /*if (soul.msgList.length + 1 > soul.msgMaxSize) {
+                            soul.msgList.shift();
+                        }*/
+                        soul.msgList.push(JSON.parse(msg.data));
+                    };
+                    // 关闭事件
+                    soul.socket.onclose = function () {
+                        /*soul.$message({
+                            title: '提示消息',
+                            message: 'Socket已关闭!',
+                            position: 'bottom-right'
+                        });*/
+                    };
+                    // 发生了错误事件
+                    soul.socket.onerror = function () {
+                        soul.$message({
+                            type: 'error',
+                            center: true,
+                            message: 'Socket发生了错误!',
+                            duration: 1000, // 显示时间
+                        });
+                    };
+                },
+                // 房间信息表单提交事件
+                roomConfirm(roomInfo) {
+                    if (this.dialogTitle == "创建房间") {
+                        this.createRoom(roomInfo);
+                    } else if (this.dialogTitle == "加入房间") {
+                        this.joinRoom(roomInfo);
+                    }
+                },
+                // 发送消息
+                sendMsg() {
+                    if (this.message == null || this.message == '') {
+                        this.$message({
+                            type: 'error',
+                            message: '请输入消息',
+                            center: true,
+                            duration: 1000, // 显示时间
+                        });
+                        return;
+                    }
+                    this.socket.send(this.message);
+                    // 后台设置了自己发消息 自己是收不到的，所以这里手动把消息塞进消息列表里面
+                    let msg = {
+                        name: this.nickName,
+                        msg: this.message,
+                        type: 1
+                    };
+                    this.msgList.push(msg);
+                    this.message = '';
+                    $("#message").focus();
+                    // 固定滚动条到底部
+                    $("#msgDiv").scrollTop($(".el-card__body")[1].scrollHeight);
+                },
+            },
+            watch:{
+                msgList: function () {
+                    this.$nextTick(function () {
+                        $("#msgDiv").scrollTop($(".el-card__body")[1].scrollHeight);
+                    });
+                }
+            },
+        });
+    </script>
+
+    <style>
+        .resizeNone .el-textarea__inner {
+            resize: none;
+        }
+
+        /* ****************聊天气泡样式***************** */
+        .leftBubble {
+            background-color: #e8b1df;
+            padding: 5px 8px;
+            display: inline-block;
+            border-radius: 4px;
+            margin: 10px 0 10px 10px;
+            position: relative;
+            color: #545050;
+        }
+        .leftBubble::after {
+            content: '';
+            border: 8px solid #ffffff00;
+            border-right: 8px solid #e8b1df;
+            position: absolute;
+            top: 8px;
+            left: -16px;
+        }
+        .rightBubble {
+            background-color: #bedafb;
+            padding: 5px 8px;
+            display: inline-block;
+            border-radius: 4px;
+            margin: 10px 10px 10px 10px;
+            position: relative;
+            color: #545050;
+        }
+        .rightBubble::after {
+            content: '';
+            border: 8px solid #ffffff00;
+            border-left: 8px solid #bedafb;
+            position: absolute;
+            top: 8px;
+            right: -16px;
+        }
+        /* ********************************* */
+
+        /* ****************隐藏滚动条***************** */
+        ::-webkit-scrollbar{
+            display: none;
+            width: 0;
+            height: 0;
+        }
+        /* 火狐
+        .inContainer {
+            scrollbar-width: none;
+        }
+        /* ********************************* */
+    </style>
+</html>

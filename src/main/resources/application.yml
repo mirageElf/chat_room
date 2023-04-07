@@ -1,0 +1,27 @@
+server:
+  port: 80
+
+spring:
+  resources: # 静态资源的路径
+    static-locations: classpath:/views/
+
+  datasource:
+    url: jdbc:mysql://47.98.48.155:3306/coco-db?allowMultiQueries=true&useUnicode=true&characterEncoding=utf8
+    username: coco
+    password: Root!@#123
+    driver-class-name: com.mysql.jdbc.Driver
+
+################### redis 单机版 start ##########################
+  redis:
+    host: 47.98.48.155
+    port: 6379
+    timeout: 3000
+    database: 1
+    password: coco123
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.soul.coco.model
+  configuration:
+    cache-enabled: false
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
